@@ -5,6 +5,9 @@ import ciriloFullUrl from '../../assets/images/cirilo_full.png';
 import pnkzFullUrl from '../../assets/images/pnkz_full.png';
 import najasorFullUrl from '../../assets/images/najasor_full.png';
 import charlesFullUrl from '../../assets/images/charles_full.png';
+import fuzoFullUrl from '../../assets/images/fuzo_full.png';
+import cevicheroFullUrl from '../../assets/images/cevichero_full.png';
+import axelFullUrl from '../../assets/images/axel_full.png';
 
 /**
  * Generates every sprite texture procedurally (see TextureGenerator) so
@@ -29,6 +32,9 @@ export class BootScene extends Phaser.Scene {
     this.load.image('pnkz_full', pnkzFullUrl);
     this.load.image('najasor_full', najasorFullUrl);
     this.load.image('charles_full', charlesFullUrl);
+    this.load.image('fuzo_full', fuzoFullUrl);
+    this.load.image('cevichero_full', cevicheroFullUrl);
+    this.load.image('axel_full', axelFullUrl);
   }
 
   create(): void {
@@ -48,6 +54,9 @@ export class BootScene extends Phaser.Scene {
     generator.applyFullBodySprite('pnkz_full', 'narizon');
     generator.applyFullBodySprite('najasor_full', 'lentes');
     generator.applyFullBodySprite('charles_full', 'grandote');
+    generator.applyFullBodySprite('fuzo_full', 'fuzo');
+    generator.applyFullBodySprite('cevichero_full', 'cevichero');
+    generator.applyFullBodySprite('axel_full', 'chato');
 
     loadingText.destroy();
     this.scene.start('MenuScene');

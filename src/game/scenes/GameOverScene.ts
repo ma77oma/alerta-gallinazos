@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Storage } from '../utils/Storage';
 import { AudioManager } from '../systems/AudioManager';
+import { Analytics } from '../systems/Analytics';
 
 const FONT = '"Arial Black", Arial, sans-serif';
 
@@ -27,6 +28,7 @@ export class GameOverScene extends Phaser.Scene {
       kills: data.kills,
       bestComboThisRun: data.bestCombo,
     });
+    if (isNewHighScore) Analytics.newHighScore(data.score);
 
     this.add
       .text(width / 2, height * 0.16, 'GAME OVER', {
@@ -69,9 +71,11 @@ export class GameOverScene extends Phaser.Scene {
     void stats;
 
     this.button(width / 2, height * 0.76, 'REINTENTAR', () => {
+      Analytics.gameOverRetryClick();
       this.scene.start('GameScene');
     });
     this.button(width / 2, height * 0.76 + 62, 'MENÚ PRINCIPAL', () => {
+      Analytics.gameOverMenuClick();
       this.scene.start('MenuScene');
     });
   }

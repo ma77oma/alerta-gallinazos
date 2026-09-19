@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { CHARACTERS } from '../config/Characters';
 import { Storage } from '../utils/Storage';
 import { AudioManager } from '../systems/AudioManager';
+import { Analytics } from '../systems/Analytics';
 
 const FONT = '"Arial Black", Arial, sans-serif';
 
@@ -74,7 +75,10 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     this.refreshSelection();
 
-    this.button(width / 2 - 140, height - 56, 'VOLVER', () => this.scene.start('MenuScene'));
+    this.button(width / 2 - 140, height - 56, 'VOLVER', () => {
+      Analytics.characterSelectBack();
+      this.scene.start('MenuScene');
+    });
     this.button(width / 2 + 140, height - 56, 'JUGAR', () => {
       Storage.setSelectedCharacter(this.selectedId);
       AudioManager.play('uiClick');

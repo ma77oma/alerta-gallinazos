@@ -12,6 +12,7 @@ import { HUD } from '../ui/HUD';
 import { MobileControls, isTouchDevice } from '../ui/MobileControls';
 import { AudioManager } from '../systems/AudioManager';
 import { Storage } from '../utils/Storage';
+import { Analytics } from '../systems/Analytics';
 
 /** Ties every system together: input, entities, collisions, HUD, waves. */
 export class GameScene extends Phaser.Scene {
@@ -65,7 +66,9 @@ export class GameScene extends Phaser.Scene {
     this.buildEnvironment(width, height);
     const perchPoints = this.buildPoles(width, height);
 
-    this.player = new Player(this, width / 2, PLAYER_CONFIG.startY, 50, width - 50, Storage.getSelectedCharacter());
+    const characterId = Storage.getSelectedCharacter();
+    this.player = new Player(this, width / 2, PLAYER_CONFIG.startY, 50, width - 50, characterId);
+    Analytics.gameStart(characterId);
 
     this.enemyGroup = this.physics.add.group();
     this.bossProjectiles = this.physics.add.group();
@@ -83,6 +86,7 @@ export class GameScene extends Phaser.Scene {
     this.setupCollisions();
 
     if (isTouchDevice()) {
+      Analytics.touchControlsDetected();
       this.mobileControls = new MobileControls(this, {
         onMoveAxis: (axis) => (this.mobileAxis = axis),
         onAim: (x, y) => this.player.aimAt(x, y),
@@ -102,20 +106,21 @@ export class GameScene extends Phaser.Scene {
     // Auto-pause if the player alt-tabs or switches apps mid-game.
     const onBlur = () => {
       clearFiring();
-      this.pauseGame();
+      this.pauseGame('auto_blur');
     };
     this.game.events.on(Phaser.Core.Events.BLUR, onBlur);
     this.events.once('shutdown', () => this.game.events.off(Phaser.Core.Events.BLUR, onBlur));
 
-    this.hud.onPauseClick = () => this.pauseGame();
+    this.hud.onPauseClick = () => this.pauseGame('manual');
 
     AudioManager.startMusic();
   }
 
-  private pauseGame(): void {
+  private pauseGame(reason: 'manual' | 'auto_blur' = 'manual'): void {
     if (this.gameOverTriggered || this.scene.isPaused()) return;
     this.isFiringHeld = false;
     AudioManager.stopMusic();
+    Analytics.gamePaused(reason);
     this.scene.pause();
     this.scene.launch('PauseScene');
   }
@@ -156,10 +161,16 @@ export class GameScene extends Phaser.Scene {
 
   private wireSystems(): void {
     this.weapon.onAmmoChange = (ammo, max) => this.hud.setAmmo(ammo, max, this.weapon.isReloading(), this.weapon.reloadProgress());
-    this.weapon.onReloadStart = () => this.hud.setAmmo(this.weapon.ammo, this.weapon.maxAmmo, true, 0);
+    this.weapon.onReloadStart = () => {
+      this.hud.setAmmo(this.weapon.ammo, this.weapon.maxAmmo, true, 0);
+      Analytics.weaponReload();
+    };
     this.weapon.onReloadEnd = () => this.hud.setAmmo(this.weapon.ammo, this.weapon.maxAmmo, false, 1);
 
-    this.combo.onComboChange = (mult) => this.hud.setCombo(mult);
+    this.combo.onComboChange = (mult) => {
+      this.hud.setCombo(mult);
+      if (mult > 1) Analytics.comboReached(mult);
+    };
 
     this.powerups.onPickupText = (x, y, label) => this.hud.showPickupText(x, y, label);
     this.powerups.onBomb = () => this.triggerBomb();
@@ -168,11 +179,15 @@ export class GameScene extends Phaser.Scene {
       this.hud.setWave(wave);
       if (isBoss) {
         this.hud.showWaveBanner(`¡JEFE! OLEADA ${wave}`, '#e53935');
+        Analytics.bossEncountered(wave);
       } else if (isSpecial) {
         this.hud.showWaveBanner(`OLEADA ESPECIAL ${wave}`, '#ffe066');
       } else {
         this.hud.showWaveBanner(`OLEADA ${wave}`);
       }
+      // Fired every 5 waves (plus wave 1) rather than every single wave, to
+      // keep event volume reasonable while still tracking how far players get.
+      if (wave === 1 || wave % 5 === 0) Analytics.waveReached(wave);
       AudioManager.play('waveStart');
     };
     this.waveSystem.onSpawnRequest = () => {
@@ -282,6 +297,7 @@ export class GameScene extends Phaser.Scene {
     if (enemy.vultureType === 'boss') {
       this.hud.showBossBar(false);
       this.currentBoss = null;
+      Analytics.bossDefeated(this.waveSystem.waveNumber);
       this.cameras.main.shake(400, 0.012);
       const burst = this.add.particles(enemy.x, enemy.y, 'particle_spark', {
         speed: { min: 120, max: 320 },
@@ -366,6 +382,13 @@ export class GameScene extends Phaser.Scene {
 
     if (this.player.isDead && !this.gameOverTriggered) {
       this.gameOverTriggered = true;
+      Analytics.gameOver({
+        score: this.score,
+        wave: this.waveSystem.waveNumber,
+        character: Storage.getSelectedCharacter(),
+        kills: this.kills,
+        bestCombo: this.combo.bestComboThisRun,
+      });
       this.time.delayedCall(800, () => {
         this.scene.start('GameOverScene', {
           score: this.score,

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Storage } from '../utils/Storage';
 import { AudioManager } from '../systems/AudioManager';
+import { Analytics } from '../systems/Analytics';
 
 const FONT = '"Arial Black", Arial, sans-serif';
 
@@ -93,19 +94,27 @@ export class MenuScene extends Phaser.Scene {
     const gap = 50;
     this.mainContainer.add(
       this.button(width / 2, startY, 'JUGAR', () => {
+        Analytics.menuJugarClick();
         this.scene.start('CharacterSelectScene');
       })
     );
     this.mainContainer.add(
-      this.button(width / 2, startY + gap, 'INSTRUCCIONES', () => this.setView('instructions'))
+      this.button(width / 2, startY + gap, 'INSTRUCCIONES', () => {
+        Analytics.menuInstruccionesClick();
+        this.setView('instructions');
+      })
     );
     this.mainContainer.add(
-      this.button(width / 2, startY + gap * 2, 'RÉCORD', () => this.setView('record'))
+      this.button(width / 2, startY + gap * 2, 'RÉCORD', () => {
+        Analytics.menuRecordClick();
+        this.setView('record');
+      })
     );
 
     const settings = AudioManager.getSettings();
     const soundBtn = this.button(width / 2, startY + gap * 3, '', () => {
       const on = AudioManager.toggleMute();
+      Analytics.menuSonidoToggle(on);
       this.soundButtonText.setText(`SONIDO: ${on ? 'ON' : 'OFF'}`);
     });
     this.soundButtonText = soundBtn.list[1] as Phaser.GameObjects.Text;

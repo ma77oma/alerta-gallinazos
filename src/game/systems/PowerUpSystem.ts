@@ -3,6 +3,7 @@ import { POWERUP_DROP_CHANCE } from '../config/GameConfig';
 import { Player } from '../entities/Player';
 import { WeaponSystem } from './WeaponSystem';
 import { AudioManager } from './AudioManager';
+import { Analytics } from './Analytics';
 
 export type PowerUpType = 'ammo' | 'health' | 'rapidfire' | 'tripleshot' | 'shield' | 'bomb';
 
@@ -85,6 +86,7 @@ export class PowerUpSystem {
   collect(sprite: Phaser.Physics.Arcade.Sprite): void {
     const type = sprite.getData('type') as PowerUpType;
     AudioManager.play('powerup');
+    Analytics.powerupCollected(type);
     let label = '';
     switch (type) {
       case 'ammo':
